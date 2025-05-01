@@ -1,8 +1,8 @@
 package com.plamason.postmanager.controller;
 
 import com.plamason.postmanager.service.InstagramApiService;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/insta")
@@ -29,6 +29,7 @@ public class InstagramApiController {
             @RequestParam String token,
             @RequestParam String content,
             @RequestParam(required = false) String imageUrl) {
-        return ResponseEntity.ok(instagramApiService.createPost(token, content, imageUrl));
+        //return ResponseEntity.ok(instagramApiService.createPost(token, content, imageUrl));
+        return null;
     }
 } 
