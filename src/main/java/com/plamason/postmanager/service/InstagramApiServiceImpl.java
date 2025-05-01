@@ -1,6 +1,7 @@
 package com.plamason.postmanager.service;
 
 import com.plamason.postmanager.exception.InstaPostFailedException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -11,15 +12,11 @@ import java.util.*;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class InstagramApiServiceImpl implements InstagramApiService {
 
     private final WebClient webClient;
-
     private static final String BASE_URL = "https://graph.instagram.com/v22.0/";
-
-    public InstagramApiServiceImpl(WebClient webClient) {
-        this.webClient = webClient;
-    }
 
     @Override
     public String test() {
