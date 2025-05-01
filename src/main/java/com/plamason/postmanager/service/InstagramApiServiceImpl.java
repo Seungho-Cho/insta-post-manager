@@ -34,8 +34,7 @@ public class InstagramApiServiceImpl implements InstagramApiService {
     @Override
     public String createPost(String userId, String accessToken, String imageUrl, String content) {
         String containerId = createContainer(userId, accessToken, imageUrl, content, false);
-        postContainer(userId, accessToken, containerId);
-        return null;
+        return postContainer(userId, accessToken, containerId);
     }
 
     @Override
@@ -45,8 +44,7 @@ public class InstagramApiServiceImpl implements InstagramApiService {
             containerIdList.add(createContainer(userId, accessToken, imageUrl, content, true))
         );
         String containerId = createCarouselContainer(userId, accessToken, containerIdList, content);
-        postContainer(userId, accessToken, containerId);
-        return null;
+        return postContainer(userId, accessToken, containerId);
     }
 
     private String createContainer(String userId, String accessToken, String imageUrl, String content, boolean isCarousel) {
