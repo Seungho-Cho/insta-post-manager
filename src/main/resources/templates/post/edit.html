@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>포스트 수정 | Post Manager</title>
+</head>
+<body>
+<section layout:fragment="content">
+    <div class="mb-8 pb-4 border-b border-neutral-200">
+        <h2 class="text-xl font-bold text-neutral-800">인스타 게시 예약</h2>
+    </div>
+    <form id="edit-form" class="space-y-6 w-full">
+        <div id="imagePreviewSet" class="flex flex-wrap gap-3"></div>
+
+        <!-- 저자 -->
+        <div>
+            <label for="author" class="block text-xs font-semibold text-neutral-500">작성자</label>
+            <input type="text" id="author" name="author"
+                   class="mt-1 block w-full rounded border border-neutral-200 px-3 py-2 focus:border-neutral-400 focus:ring-0 transition bg-white" />
+        </div>
+        <!-- 제목 -->
+        <div>
+            <label for="title" class="block text-xs font-semibold text-neutral-500">제목</label>
+            <input type="text" id="title" name="title"
+                   class="mt-1 block w-full rounded border border-neutral-200 px-3 py-2 focus:border-neutral-400 focus:ring-0 transition bg-white"
+                   required />
+        </div>
+        <!-- 내용 -->
+        <div>
+            <label for="content" class="block text-xs font-semibold text-neutral-500">내용</label>
+            <textarea id="content" name="content" rows="6"
+                      class="mt-1 block w-full rounded border border-neutral-200 px-3 py-2 focus:border-neutral-400 focus:ring-0 transition bg-white"
+                      required></textarea>
+        </div>
+        <!-- 태그 (커스텀 입력 + 추천 태그) -->
+        <div>
+            <label class="block text-xs font-semibold text-neutral-500 mb-1">추천 태그</label>
+            <!-- 추천 태그 모음 (여기서 클릭시 selected로 이동) -->
+            <div class="flex flex-wrap gap-2 mb-2" id="suggested-tags"></div>
+            <!-- 실제 입력창 (엔터로 직접 입력시 추가, 폼 submit전 hidden input에 join된 값 저장) -->
+            <input type="text" id="tag-input"
+                   class="block w-full rounded border border-neutral-200 px-3 py-2 focus:border-neutral-400 focus:ring-0 transition bg-white"
+                   placeholder="수동 입력(하나씩 Enter로 추가)"
+            />
+            <label class="block text-xs font-semibold text-neutral-500 mb-1">선택된 태그</label>
+            <!-- 선택된 태그 리스트 (클릭시 삭제) -->
+            <div class="flex flex-wrap gap-2 mb-2" id="selected-tags"></div>
+            <!-- 아래 hidden input이 실제 form 전송 시 사용될 값 -->
+            <input type="hidden" id="tags" name="tags">
+        </div>
+
+        <input type="hidden" id="imageUrls" name="imageUrls">
+        <input type="hidden" id="status" name="status" value="SCHEDULED">
+
+        <div class="flex justify-end gap-4">
+            <button type="submit"
+                    class="bg-neutral-900 text-white px-6 py-2 rounded font-semibold hover:bg-neutral-700 transition">
+                게시 예약
+            </button>
+        </div>
+    </form>
+    <script th:inline="javascript">
+        // 서버에서 전달된 id 사용
+        const postId = /*[[${id}]]*/ 0;
+        function renderImagePreviewSet(urls) {
+            const container = document.getElementById('imagePreviewSet');
+            container.innerHTML = '';
+            (urls || []).forEach(url => {
+                if (url && url.trim()) {
+                    const img = document.createElement('img');
+                    img.src = url.trim();
+                    img.alt = 'preview';
+                    img.className = 'w-16 h-16 object-cover border rounded';
+                    container.appendChild(img);
+                }
+            });
+        }
+        document.addEventListener("DOMContentLoaded", function () {
+            fetch(`/post/${postId}`)
+                .then(res => res.json())
+                .then(post => {
+                    document.getElementById('title').value = post.title ?? '';
+                    document.getElementById('content').value = post.content ?? '';
+                    document.getElementById('author').value = post.author ?? '';
+                    document.getElementById('imageUrls').value = post.imageUrls ? post.imageUrls.join(', ') : '';
+                    renderImagePreviewSet(post.imageUrls);
+                });
+        });
+        document.getElementById('edit-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const payload = {
+                title: document.getElementById('title').value,
+                content: document.getElementById('content').value,
+                author: document.getElementById('author').value,
+                tags: document.getElementById('tags').value
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean),
+                imageUrls: document.getElementById('imageUrls').value
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(Boolean),
+                status: document.getElementById('status').value
+            };
+            fetch(`/post/${postId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(res => {
+                if (res.ok) {
+                    alert('수정이 완료되었습니다.');
+                    window.location.href = '/ui/posts';
+                } else {
+                    alert('수정 중 오류가 발생했습니다.');
+                }
+            });
+        });
+    </script>
+<script>
+const DEFAULT_SUGGESTED = ['운동','식단','개발','음악','영화','취미','라이프','기술','여행'];
+let selectedTags = [];
+
+const tagInput = document.getElementById('tag-input');
+const hiddenTags = document.getElementById('tags');
+const suggestedTagsDiv = document.getElementById('suggested-tags');
+const selectedTagsDiv = document.getElementById('selected-tags');
+
+// 추천 태그 렌더링
+function renderSuggestedTags() {
+    suggestedTagsDiv.innerHTML = '';
+    DEFAULT_SUGGESTED.forEach(tag => {
+        if (!selectedTags.includes(tag)) {
+            const btn = document.createElement('button');
+            btn.type = "button";
+            btn.className = "bg-neutral-100 text-xs px-2 py-1 rounded hover:bg-blue-200 text-neutral-700 border border-neutral-200";
+            btn.textContent = tag;
+            btn.onclick = () => selectTag(tag);
+            suggestedTagsDiv.appendChild(btn);
+        }
+    });
+}
+// 선택된 태그 렌더링
+function renderSelectedTags() {
+    selectedTagsDiv.innerHTML = '';
+    selectedTags.forEach(tag => {
+        const tagEl = document.createElement('span');
+        tagEl.className = "bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium cursor-pointer hover:bg-red-100 hover:text-red-700 border border-blue-200";
+        tagEl.textContent = '#' + tag;
+        tagEl.title = "클릭 시 제거";
+        tagEl.onclick = () => removeTag(tag);
+        selectedTagsDiv.appendChild(tagEl);
+    });
+    // 히든 인풋에 join 저장 (쉼표로)
+    hiddenTags.value = selectedTags.join(",");
+}
+function selectTag(tag) {
+    if (!selectedTags.includes(tag)) {
+        selectedTags.push(tag);
+        renderSuggestedTags();
+        renderSelectedTags();
+    }
+}
+function removeTag(tag) {
+    selectedTags = selectedTags.filter(t => t !== tag);
+    renderSuggestedTags();
+    renderSelectedTags();
+}
+tagInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const tag = tagInput.value.trim();
+        if (tag && !selectedTags.includes(tag)) {
+            selectTag(tag);
+            tagInput.value = '';
+        }
+    }
+})
+
+// 서버에서 post 정보 가져올 때 기존 태그도 넣어줌
+document.addEventListener("DOMContentLoaded", function () {
+    // 기존 코드 (기타 입력 필드 세팅 등)...
+    fetch(`/post/${postId}`)
+        .then(res => res.json())
+        .then(post => {
+            document.getElementById('title').value = post.title ?? '';
+            document.getElementById('content').value = post.content ?? '';
+            document.getElementById('author').value = post.author ?? '';
+            document.getElementById('imageUrls').value = post.imageUrls ? post.imageUrls.join(', ') : '';
+            renderImagePreviewSet(post.imageUrls);
+
+            // 기존 태그 세팅
+            // post.tags가 배열이라고 가정, 없으면 빈 배열
+            selectedTags = Array.isArray(post.tags)
+                ? post.tags.filter(Boolean)
+                : (typeof post.tags === "string" && post.tags.trim()) ? post.tags.split(',').map(t=>t.trim()).filter(Boolean) : [];
+            renderSuggestedTags();
+            renderSelectedTags();
+        });
+    renderSuggestedTags();
+    renderSelectedTags();
+});
+</script>
+</section>
+</body>
+</html>

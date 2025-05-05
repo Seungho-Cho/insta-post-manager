@@ -19,6 +19,8 @@ public class DiscordBotMessageListener extends ListenerAdapter {
     private final String postManagerUrl;
     private final PostManageService postManageService;
 
+    private static final String UI_URL = "/ui/posts/";
+
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         if(!event.getChannel().getId().equals(channelId)) return;
@@ -44,7 +46,7 @@ public class DiscordBotMessageListener extends ListenerAdapter {
         ).getId();
 
         event.getMessage().reply("이미지 확인완료! 아래 버튼을 눌러 포스팅을 계속 진행해 주세요.")
-                .setActionRow(Button.link(postManagerUrl + "/post/"+ postId,"📤 포스팅 하러 가기"))
+                .setActionRow(Button.link(postManagerUrl + UI_URL + postId,"📤 포스팅 하러 가기"))
                 .queue();
     }
 }

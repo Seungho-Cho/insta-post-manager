@@ -5,11 +5,11 @@ import com.plamason.postmanager.dto.PostResponse;
 import com.plamason.postmanager.entity.PostStatus;
 import com.plamason.postmanager.service.PostManageService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/post")
@@ -30,9 +30,13 @@ public class PostManageController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<PostResponse>> getAllPosts(Pageable pageable) {
-        return ResponseEntity.ok(postManageService.getAllPosts(pageable));
+    public ResponseEntity<List<PostResponse>> getAllPosts(
+            @RequestParam(required = false) Long lastPostId,
+            @RequestParam(defaultValue = "10") int size) {
+        List<PostResponse> posts = postManageService.getPosts(lastPostId, size);
+        return ResponseEntity.ok(posts);
     }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<PostResponse> updatePost(

@@ -12,4 +12,5 @@ public class PostRequest {
     private List<String> imageUrls;
     private List<String> tags;
     private String author;
+    private String status;
 } 

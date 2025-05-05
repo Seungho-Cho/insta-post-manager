@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>포스트 목록 | Post Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<section layout:fragment="content">
+    <div class="mb-8 pb-4 flex justify-between items-end border-b border-neutral-200">
+        <h2 class="text-xl font-bold text-neutral-800">포스팅 목록</h2>
+    </div>
+    <div class="overflow-x-auto rounded-lg border border-neutral-100 bg-neutral-50">
+        <table class="min-w-full text-sm text-left">
+            <thead>
+                <tr>
+                    <th class="px-4 py-3 font-semibold text-neutral-500">제목</th>
+                    <th class="px-4 py-3 font-semibold text-neutral-500">작성자</th>
+                    <th class="px-4 py-3 font-semibold text-neutral-500">등록일</th>
+                    <th class="px-4 py-3 font-semibold text-neutral-500">상태</th>
+                    <th class="px-4 py-3 font-semibold text-neutral-500">게시일</th>
+                </tr>
+            </thead>
+            <tbody id="post-list" class="bg-white">
+            <!-- 리스트 JS 렌더링 -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+    // 상태 코드→한글 변환 및 색상 맵핑
+    const statusDisplay = {
+        DRAFT:  { text: "임시",    color: "bg-gray-200 text-gray-600" },
+        SCHEDULED: { text: "예약",   color: "bg-blue-100 text-blue-600" },
+        PUBLISHED: { text: "완료",   color: "bg-green-100 text-green-700" },
+        FAILED: { text: "실패",   color: "bg-red-100 text-red-600" }
+    };
+    document.addEventListener("DOMContentLoaded", function () {
+        fetch("/post")
+            .then(res => res.json())
+            .then(posts => {
+                const list = document.getElementById('post-list');
+                list.innerHTML = "";
+                posts.forEach(post => {
+                    // statusDisplay에 해당 상태가 없으면 기본값 지정
+                    const statusObj = post.status && statusDisplay[post.status]
+                        ? statusDisplay[post.status]
+                        : { text: '-', color: "bg-neutral-100 text-neutral-700" };
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <a href="/ui/posts/${post.id}" class="text-neutral-900 hover:underline font-medium">${post.title}</a>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">${post.author ? post.author : '-'}</td>
+                        <td class="px-4 py-3 whitespace-nowrap">${post.createdAt ? post.createdAt.substring(0,10) : '-'}</td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="inline-block px-2 py-0.5 rounded ${statusObj.color}">${statusObj.text}</span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">${post.publishedAt ? post.publishedAt.substring(0,10) : '-'}</td>
+                    `;
+                    list.appendChild(row);
+                });
+            });
+    });
+</script>
+</section>
+</body>
+</html>

@@ -6,10 +6,11 @@ import com.plamason.postmanager.entity.Post;
 import com.plamason.postmanager.entity.PostStatus;
 import com.plamason.postmanager.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -37,10 +38,26 @@ public class PostManageService {
         return convertToResponse(post);
     }
 
-    public Page<PostResponse> getAllPosts(Pageable pageable) {
+    /*public Page<PostResponse> getAllPosts(Pageable pageable) {
         return postRepository.findAll(pageable)
                 .map(this::convertToResponse);
+    }*/
+
+    public List<PostResponse> getPosts(Long lastPostId, int size) {
+        List<Post> posts;
+
+        if (lastPostId == null) {
+            posts = postRepository.findAllByOrderByIdDesc(PageRequest.of(0, size));
+        } else {
+            posts = postRepository.findAllByIdLessThanOrderByIdDesc(lastPostId, PageRequest.of(0, size));
+        }
+
+        return posts.stream()
+                .map(this::convertToResponse)
+                .toList();
     }
+
+
 
     @Transactional
     public PostResponse updatePost(Long id, PostRequest request) {
@@ -52,6 +69,7 @@ public class PostManageService {
         post.setImageUrls(request.getImageUrls());
         post.setTags(request.getTags());
         post.setAuthor(request.getAuthor());
+        post.setStatus(PostStatus.valueOf(request.getStatus()));
 
         return convertToResponse(postRepository.save(post));
     }
@@ -73,9 +91,13 @@ public class PostManageService {
     }
 
     private PostResponse convertToResponse(Post post) {
+        String safeTitle = (post.getTitle() == null || post.getTitle().trim().isEmpty())
+                ? "(제목 없음)"
+                : post.getTitle();
+
         return PostResponse.builder()
                 .id(post.getId())
-                .title(post.getTitle())
+                .title(safeTitle)
                 .content(post.getContent())
                 .imageUrls(post.getImageUrls())
                 .tags(post.getTags())

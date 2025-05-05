@@ -108,7 +108,7 @@ class PostManageServiceTest {
                 .hasMessageContaining("not found");
     }
 
-    @Test
+    /*@Test
     @DisplayName("전체 게시물 조회 성공")
     void getAllPosts_Success() {
         Pageable pageable = PageRequest.of(0, 10);
@@ -120,7 +120,7 @@ class PostManageServiceTest {
         assertThat(response).isNotNull();
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).getTitle()).isEqualTo(post.getTitle());
-    }
+    }*/
 
     @Test
     @DisplayName("게시물 수정 성공")
