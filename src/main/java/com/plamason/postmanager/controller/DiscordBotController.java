@@ -18,6 +18,9 @@ public class DiscordBotController {
 
     @GetMapping(value = "/start")
     public ResponseEntity<Void> startBot() {
+        if (discordBot != null) {
+            discordBotService.stopBot(discordBot);
+        }
         try{
             discordBot = discordBotService.startBotAndListenChannel();
         } catch (IllegalStateException e) {
