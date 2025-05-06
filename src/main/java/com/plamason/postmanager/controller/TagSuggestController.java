@@ -1,6 +1,6 @@
 package com.plamason.postmanager.controller;
 
-import com.plamason.postmanager.dto.TagSuggestRequestDto;
+import com.plamason.postmanager.dto.TagSuggestRequest;
 import com.plamason.postmanager.service.TagSuggestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -20,11 +20,11 @@ public class TagSuggestController {
     }
 
     @PostMapping("/suggest")
-    public List<String> suggestTag(@RequestBody  TagSuggestRequestDto requestDto) {
+    public List<String> suggestTag(@RequestBody TagSuggestRequest request) {
         return tagSuggestService.suggestTag(
-                requestDto.getTitle()
-                    + " " + requestDto.getContent()
-                    + " " + requestDto.getDescription());
+                request.getTitle()
+                    + " " + request.getContent()
+                    + " " + request.getDescription());
     }
 
 }
