@@ -7,7 +7,9 @@ public enum AppSettingName {
     INSTAGRAM_API_USER_ID("instagram.api.user.id"),
     INSTAGRAM_API_SECRET("instagram.api.secret"),
     GROQ_API_KEY("groq.api.key"),
-    GROQ_LLM_MODEL("groq.llm.model");
+    GROQ_LLM_MODEL("groq.llm.model"),
+    GROQ_BASE_PROMPT("groq.base.prompt"),
+    APP_BASE_TAG("app.base.tag");
 
     private final String key;
 

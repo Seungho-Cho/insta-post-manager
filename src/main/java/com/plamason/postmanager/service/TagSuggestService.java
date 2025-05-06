@@ -6,5 +6,6 @@ import java.util.List;
 
 @Service
 public interface TagSuggestService {
-    public List<String> suggestTag(String apiKey, String llmModel, String prompt, String content);
+    List<String> getBaseTag();
+    List<String> suggestTag(String content);
 }
