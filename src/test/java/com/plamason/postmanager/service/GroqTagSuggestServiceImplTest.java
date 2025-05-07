@@ -8,10 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 class GroqTagSuggestServiceImplTest {
 
     @Autowired
-    private GroqTagSuggestServiceImpl groqTagSuggestService;
-
-    String apiKey = "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";
-    String llmModel = "llama-3.3-70b-versatile";
+    private GroqAiAssistServiceImpl groqTagSuggestService;
 
     String content1 = "KF-16DU Republic Of Korea Air Force, 120th Fighter Squadron\n" +
             "\n" +
@@ -75,6 +72,6 @@ class GroqTagSuggestServiceImplTest {
 
     @Test
     void apiTest() {
-        System.out.println(groqTagSuggestService.suggestTag(content2));
+        System.out.println(groqTagSuggestService.translateContent(content2));
     }
 }
