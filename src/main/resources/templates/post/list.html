@@ -5,6 +5,80 @@
 <head>
     <title>포스트 목록 | Post Manager</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+    td.title-col {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* 제목 컬럼 호버 전체 표시 */
+    td.title-col a {
+        display: inline-block;
+        vertical-align: middle;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition: background 0.2s;
+    }
+    td.title-col a:hover {
+        white-space: normal;
+        background: #f3f3f3;
+        z-index: 10;
+        position: relative;
+        box-shadow: 0 4px 12px 2px #0002;
+        padding: 2px 6px;
+        border-radius: 6px;
+        max-width: none;
+        word-break: break-all;
+    }
+    /* PC에서 좌우 스크롤 없도록 */
+    @media (min-width: 641px) {
+        .overflow-x-auto {
+            overflow-x: unset !important;
+        }
+        table {
+            min-width: 0 !important; /* 항상 컨테이너 내에서만 */
+            width: 100%;
+            table-layout: fixed;
+        }
+    }
+    @media (max-width: 640px) { /* Tailwind 기준 sm 이하 (예: 640px) */
+        table thead {
+            display: none;
+        }
+        table, tbody, tr, td {
+            display: block;
+            width: 100%;
+        }
+        tr {
+            margin-bottom: 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px #0001;
+            background: #fff;
+        }
+        td {
+            /* 각 줄 간격 */
+            border: none;
+            max-width: 100%;
+            white-space: normal;
+            text-overflow: initial;
+            padding: 12px 16px;
+            position: relative;
+        }
+        /* 각 항목 명 표시 */
+        td[data-label]:before {
+            content: attr(data-label) ": ";
+            font-weight: bold;
+            color: #666;
+            display: inline-block;
+            margin-right: 2px;
+            min-width: 64px;
+        }
+    }
+    </style>
 </head>
 <body>
 <section layout:fragment="content">
@@ -14,20 +88,29 @@
     <div class="overflow-x-auto rounded-lg border border-neutral-100 bg-neutral-50">
         <table class="min-w-full text-sm text-left">
             <thead>
-                <tr>
-                    <th class="px-4 py-3 font-semibold text-neutral-500">제목</th>
-                    <th class="px-4 py-3 font-semibold text-neutral-500">작성자</th>
-                    <th class="px-4 py-3 font-semibold text-neutral-500">등록일</th>
-                    <th class="px-4 py-3 font-semibold text-neutral-500">상태</th>
-                    <th class="px-4 py-3 font-semibold text-neutral-500">게시일</th>
-                </tr>
-            </thead>
+    <tr>
+        <th style="width:10%;" class="px-4 py-3 font-semibold text-neutral-500">상태</th>
+        <th style="width:40%;" class="px-4 py-3 font-semibold text-neutral-500">제목</th>
+        <th style="width:20%;" class="px-4 py-3 font-semibold text-neutral-500">작성자</th>
+        <th style="width:15%;" class="px-4 py-3 font-semibold text-neutral-500">등록일</th>
+        <th style="width:15%;" class="px-4 py-3 font-semibold text-neutral-500">게시일</th>
+    </tr>
+</thead>
             <tbody id="post-list" class="bg-white">
             <!-- 리스트 JS 렌더링 -->
             </tbody>
         </table>
     </div>
-    <script>
+    <!-- 에러 메시지 모달 (항상 script 이전에 위치해야 함!) -->
+<div id="error-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+  <div class="bg-white rounded shadow-xl p-6 max-w-sm w-full">
+    <div class="mb-4 text-red-700 font-bold text-lg">에러 메시지</div>
+    <div id="error-modal-message" class="text-sm mb-4"></div>
+    <button id="error-modal-close" class="w-full bg-red-600 text-white py-2 rounded">닫기</button>
+  </div>
+</div>
+  
+  <script>
     // 상태 코드→한글 변환 및 색상 맵핑
     const statusDisplay = {
         DRAFT:  { text: "임시",    color: "bg-gray-200 text-gray-600" },
@@ -35,33 +118,108 @@
         PUBLISHED: { text: "완료",   color: "bg-green-100 text-green-700" },
         FAILED: { text: "실패",   color: "bg-red-100 text-red-600" }
     };
-    document.addEventListener("DOMContentLoaded", function () {
-        fetch("/post")
+
+    let isLoading = false;
+    let lastPostId = null; // 마지막 조회한 ID
+    let isEnd = false;
+    const fetchSize = 10;
+
+function renderPostRow(post) {
+    const statusObj = post.status && statusDisplay[post.status]
+        ? statusDisplay[post.status]
+        : { text: '-', color: "bg-neutral-100 text-neutral-700" };
+    const row = document.createElement('tr');
+    const isFailed = post.status === 'FAILED';
+
+    row.innerHTML = `
+    <td class="px-4 py-3 whitespace-nowrap" data-label="상태">
+        <span class="inline-block px-2 py-0.5 rounded ${statusObj.color} ${isFailed ? 'cursor-pointer underline' : ''}">
+            ${statusObj.text}
+        </span>
+    </td>
+    <td class="title-col px-4 py-3 whitespace-nowrap" data-label="제목">
+    <a href="/ui/posts/${post.id}" class="text-neutral-900 hover:underline font-medium"
+       title="${post.title}">${post.title}</a>
+</td>
+    <td class="px-4 py-3 whitespace-nowrap" data-label="작성자">${post.author ? post.author : '-'}</td>
+    <td class="px-4 py-3 whitespace-nowrap" data-label="등록일">${post.createdAt ? post.createdAt.substring(0,10) : '-'}</td>
+    <td class="px-4 py-3 whitespace-nowrap" data-label="게시일">${post.postedAt ? post.postedAt.substring(0,10) : '-'}</td>
+`;
+
+    // 실패 상태 클릭 이벤트
+    if (isFailed) {
+        row.querySelector('span').addEventListener('click', function () {
+            showErrorModal(post.errorMessage || "에러 메시지가 없습니다.");
+        });
+    }
+
+    return row;
+}
+    
+    function fetchPosts(isFirst = false) {
+        if (isLoading || isEnd) return;
+        isLoading = true;
+        let url = `/post?size=${fetchSize}`;
+        if (lastPostId !== null) url += `&lastPostId=${lastPostId}`;
+        fetch(url)
             .then(res => res.json())
             .then(posts => {
-                const list = document.getElementById('post-list');
-                list.innerHTML = "";
+                if (isFirst) {
+                    document.getElementById('post-list').innerHTML = '';
+                }
+                if (posts.length === 0) {
+                    isEnd = true;
+                    return;
+                }
                 posts.forEach(post => {
-                    // statusDisplay에 해당 상태가 없으면 기본값 지정
-                    const statusObj = post.status && statusDisplay[post.status]
-                        ? statusDisplay[post.status]
-                        : { text: '-', color: "bg-neutral-100 text-neutral-700" };
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <a href="/ui/posts/${post.id}" class="text-neutral-900 hover:underline font-medium">${post.title}</a>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">${post.author ? post.author : '-'}</td>
-                        <td class="px-4 py-3 whitespace-nowrap">${post.createdAt ? post.createdAt.substring(0,10) : '-'}</td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="inline-block px-2 py-0.5 rounded ${statusObj.color}">${statusObj.text}</span>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap">${post.publishedAt ? post.publishedAt.substring(0,10) : '-'}</td>
-                    `;
-                    list.appendChild(row);
+                    document.getElementById('post-list').appendChild(renderPostRow(post));
                 });
+                lastPostId = posts[posts.length - 1].id;
+                if (posts.length < fetchSize) isEnd = true;
+            })
+            .finally(() => {
+                isLoading = false;
             });
+    }
+
+    // 초기 로딩
+document.addEventListener("DOMContentLoaded", function () {
+    // 최초 데이터 로드
+    fetchPosts(true);
+
+    // 무한스크롤
+    window.addEventListener('scroll', function () {
+        if ((window.innerHeight + window.scrollY) >= (document.body.offsetHeight - 300)) {
+            fetchPosts();
+        }
     });
+
+    // 페이지 전체 높이가 윈도우 높이보다 작으면 계속 불러옴 (fetchPosts 내부적으로 isEnd 체크)
+    function tryFillMore() {
+        if (isEnd) return;
+        // body가 창보다 작으면 더 불러오기
+        if (document.body.scrollHeight <= window.innerHeight) {
+            fetchPosts();
+            // 비동기로 실행되므로 약간의 딜레이 후 재확인
+            setTimeout(tryFillMore, 100);
+        }
+    }
+    
+    // 최초 데이터 로드 이후, 한번만 실행
+    setTimeout(tryFillMore, 300);
+});
+function showErrorModal(message) {
+    document.getElementById('error-modal-message').innerText = message;
+    document.getElementById('error-modal').classList.remove('hidden');
+}
+document.getElementById('error-modal-close').addEventListener('click', function () {
+    document.getElementById('error-modal').classList.add('hidden');
+});
+document.getElementById('error-modal').addEventListener('click', function (e) {
+    if (e.target === this) {
+        this.classList.add('hidden');
+    }
+});
 </script>
 </section>
 </body>

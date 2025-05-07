@@ -4,6 +4,179 @@
       layout:decorate="~{layout}">
 <head>
     <title>포스트 수정 | Post Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- 모바일 최적화 -->
+    <style>
+        /* 기본 스타일 유지 (이미 있던 내용) */
+
+        /* 반응형 개선 추가 */
+        html, body {
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
+
+        section[layout\:fragment="content"] {
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        form#edit-form {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        /* input, textarea 공통: 최대너비 보장 */
+        input[type="text"],
+        input[type="hidden"],
+        textarea {
+            box-sizing: border-box;
+            max-width: 100%;
+            min-width: 0;
+            width: 100%;
+        }
+
+        /* 태그 추천 및 선택 영역 */
+        #suggested-tags, #suggested-tags-from-ai, #selected-tags, #imagePreviewSet {
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            overflow-x: auto;
+            max-width: 100%;
+        }
+
+        /* 버튼들 줄바꿈 방지, 좁은 화면에서 적절히 생성 */
+        .flex.gap-4 {
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        /* 미리보기 버튼, 삭제, 게시예약 버튼: 모바일에서 세로로 쌓이도록 */
+        @media (max-width: 520px) {
+            .flex.justify-between.items-center.gap-4.mt-6 {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+            .flex.gap-4 {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            #edit-form {
+                padding: 0 !important;
+            }
+            section[layout\:fragment="content"] {
+                padding: 2vw;
+            }
+        }
+
+        /* 이미지 프리뷰 모달 */
+        #insta-preview-modal > div {
+            width: 96vw;
+            max-width: 400px;
+        }
+        @media (max-width: 520px) {
+            #insta-preview-modal > div {
+                max-width: 98vw;
+                min-width: 0;
+                border-radius: 0.75rem;
+            }
+            #insta-preview-images {
+                max-height: 210px !important;
+                aspect-ratio: 1/1 !important;
+            }
+        }
+        /* 모달 이미지 영역 스크롤/깨짐 방지 및 너비 제어 */
+        #insta-preview-images {
+            width: 100%;
+            min-width: 0;
+            overflow-x: auto;
+            aspect-ratio: 1/1;
+            max-width: 100%;
+            max-height: 350px;
+        }
+        /* 텍스트 너무 길 때 줄바꿈 강제 */
+        #insta-preview-content,
+        #insta-preview-tags,
+        .text-base,
+        .text-sm,
+        label {
+            word-break: break-all;
+            overflow-wrap: anywhere;
+        }
+        /* Input 등 컨테이너 줄바꿈 깨짐 최소화 */
+        .block, .flex {
+            min-width: 0;
+        }
+
+        /* 미리보기 썸네일 작은 이미지: 모바일에서 크기축소 */
+        @media (max-width: 520px) {
+            #imagePreviewSet img {
+                width: 3.2rem;
+                height: 3.2rem;
+            }
+            h2.text-xl {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+    <style>
+        /* 인스타 미리보기 카루셀 좌우 버튼 스타일 (Tailwind 없을 경우 대비) */
+        .carousel-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+            background: rgba(30,30,30,0.5);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .carousel-arrow:hover {
+            background: rgba(0,0,0,0.8);
+        }
+        .carousel-arrow.left { left: 8px; }
+        .carousel-arrow.right { right: 8px; }
+        /* 부모에 relative를 꼭 줘야 함 */
+        #insta-preview-images {
+            position: relative;
+            min-height: 160px;
+        }
+    </style>
+    <style>
+        /* 인스타 미리보기 모달 닫기 버튼 오버레이 스타일 */
+        .insta-modal-close-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(255,255,255,0.75);
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #444;
+            font-size: 2rem;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+            z-index: 20;
+            transition: background 0.2s, color 0.2s;
+        }
+        .insta-modal-close-btn:hover {
+            background: #efefef;
+            color: #e53e3e; /* red */
+        }
+    </style>
 </head>
 <body>
 <section layout:fragment="content">
@@ -83,13 +256,65 @@
         <input type="hidden" id="imageUrls" name="imageUrls">
         <input type="hidden" id="status" name="status" value="SCHEDULED">
 
-        <div class="flex justify-end gap-4">
-            <button type="submit"
-                    class="bg-neutral-900 text-white px-6 py-2 rounded font-semibold hover:bg-neutral-700 transition">
-                게시 예약
-            </button>
-        </div>
+        <div class="flex justify-between items-center gap-4 mt-6">
+  <!-- 왼쪽: 미리보기 버튼 -->
+  <div>
+    <button type="button" id="btn-preview"
+        class="bg-blue-500 text-white px-6 py-2 rounded font-semibold hover:bg-blue-400 transition">
+        미리보기
+    </button>
+  </div>
+  <!-- 오른쪽: 삭제, 게시예약 버튼 -->
+  <div class="flex gap-4">
+    <button type="button" id="btn-delete"
+        class="bg-red-600 text-white px-6 py-2 rounded font-semibold hover:bg-red-500 transition">
+        삭제
+    </button>
+    <button type="submit"
+        class="bg-neutral-900 text-white px-6 py-2 rounded font-semibold hover:bg-neutral-700 transition">
+        게시 예약
+    </button>
+  </div>
+</div>
     </form>
+
+    
+<div id="insta-preview-modal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white rounded shadow-xl max-w-sm w-full relative p-0">
+        <!-- 닫기 버튼 (오버레이) -->
+        <button id="insta-preview-close"
+                class="insta-modal-close-btn"
+                type="button"
+                aria-label="닫기">
+            &times;
+        </button>
+        <div class="w-full">
+            <!-- 이미지 영역 -->
+            <div id="insta-preview-images" class="w-full bg-black flex justify-center items-center" style="aspect-ratio:1/1; max-height:350px; overflow:hidden"></div>
+            <!-- 정보 영역 -->
+            <div class="p-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="block w-8 h-8 rounded-full bg-neutral-200"></span>
+                    <span id="insta-preview-author" class="font-semibold text-neutral-800 text-sm">team_plamason</span>
+                </div>
+                <div id="insta-preview-content" class="mb-2 text-base text-neutral-800 break-words"></div>
+                <div id="insta-preview-tags" class="text-blue-600 text-sm flex flex-wrap gap-1"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// 모달 닫기 버튼 기능
+document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('insta-preview-close');
+    var modal = document.getElementById('insta-preview-modal');
+    if (btn && modal) {
+        btn.onclick = function() {
+            modal.classList.add('hidden');
+        }
+    }
+});
+</script>
     <script th:inline="javascript">
         // 서버에서 전달된 id 사용
         const postId = /*[[${id}]]*/ 0;
@@ -296,6 +521,168 @@ btnFetchSuggestTags.addEventListener('click', async function() {
     btnFetchSuggestTags.textContent = '태그 받아오기'
 });
 });
+document.getElementById('btn-delete').addEventListener('click', function () {
+    if (confirm('정말로 이 게시글을 삭제하시겠습니까?')) {
+        fetch(`/post/${postId}`, {
+            method: 'DELETE',
+        }).then(res => {
+            if (res.ok) {
+                alert('삭제가 완료되었습니다.');
+                window.location.href = '/ui/posts';
+            } else {
+                alert('삭제 중 오류가 발생했습니다.');
+            }
+        });
+    }
+});
+// 미리보기 버튼 관련
+document.getElementById('btn-preview').addEventListener('click', function() {
+    // 폼 입력값을 사용해서 미리보기 생성
+    const images = (document.getElementById('imageUrls').value || '').split(',').map(v => v.trim()).filter(Boolean);
+    const title = document.getElementById('title').value;
+    const author = document.getElementById('author').value;
+    const content = document.getElementById('content').value;
+
+    const htmlContent =
+        title + '<br><br>' +
+        (author ? "작성자 : " + author + '<br><br>' : '') +
+        content.replace(/\n/g, '<br>') + '<br><br>';
+
+
+    const tags = document.getElementById('tags').value.split(',').map(s => s.trim()).filter(Boolean);
+
+    // 인스타 이미지 프리뷰
+    const imageUrls = document.getElementById('imageUrls').value
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+    renderImageCarousel(imageUrls);
+
+    document.getElementById('insta-preview-content').innerHTML = htmlContent || "(내용 없음)";
+
+    // 태그
+    const tagsDiv = document.getElementById('insta-preview-tags');
+    tagsDiv.innerHTML = '';
+    tags.forEach(tag => {
+        if(tag) {
+            const span = document.createElement('span');
+            span.textContent = `#${tag}`;
+            span.className = 'mr-2';
+            tagsDiv.appendChild(span);
+        }
+    });
+
+    // 모달 show
+    document.getElementById('insta-preview-modal').classList.remove('hidden');
+});
+// 모달 닫기
+document.getElementById('insta-preview-close').addEventListener('click', function() {
+    document.getElementById('insta-preview-modal').classList.add('hidden');
+});
+document.getElementById('insta-preview-modal').addEventListener('click', function(e){
+    if(e.target === this) this.classList.add('hidden');
+});
+function renderImageCarousel(urls) {
+    const container = document.getElementById('insta-preview-images');
+    container.innerHTML = '';
+    if (!urls || !urls.length) return;
+
+    let current = 0;
+
+    function showImage(idx) {
+        container.innerHTML = '';
+        container.style.position = 'relative';
+
+        // 이미지
+        const img = document.createElement('img');
+        img.src = urls[idx];
+        img.alt = `미리보기 이미지 ${idx+1}`;
+        img.className = 'object-contain max-h-full max-w-full mx-auto';
+        img.style.display = 'block';
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '330px';
+        img.style.margin = '0 auto';
+        container.appendChild(img);
+
+        if (urls.length > 1) {
+            // 왼쪽 화살표
+            const leftBtn = document.createElement('button');
+            leftBtn.textContent = '‹';
+            leftBtn.className = 'carousel-arrow left';
+            leftBtn.type = 'button';
+            leftBtn.onclick = function() {
+                current = (current - 1 + urls.length) % urls.length;
+                showImage(current);
+            }
+            container.appendChild(leftBtn);
+
+            // 오른쪽 화살표
+            const rightBtn = document.createElement('button');
+            rightBtn.textContent = '›';
+            rightBtn.className = 'carousel-arrow right';
+            rightBtn.type = 'button';
+            rightBtn.onclick = function() {
+                current = (current + 1) % urls.length;
+                showImage(current);
+            }
+            container.appendChild(rightBtn);
+        }
+    }
+
+    showImage(current);
+}
+</script>
+
+<script>
+function renderImageCarousel(urls) {
+    const container = document.getElementById('insta-preview-images');
+    container.innerHTML = '';
+    if (!urls || !urls.length) return;
+
+    let current = 0;
+
+    function showImage(idx) {
+        container.innerHTML = '';
+        container.style.position = 'relative';
+
+        // 이미지
+        const img = document.createElement('img');
+        img.src = urls[idx];
+        img.alt = `미리보기 이미지 ${idx+1}`;
+        img.className = 'object-contain max-h-full max-w-full mx-auto';
+        img.style.display = 'block';
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '330px';
+        img.style.margin = '0 auto';
+        container.appendChild(img);
+
+        if (urls.length > 1) {
+            // 왼쪽 화살표
+            const leftBtn = document.createElement('button');
+            leftBtn.textContent = '‹';
+            leftBtn.className = 'carousel-arrow left';
+            leftBtn.type = 'button';
+            leftBtn.onclick = function() {
+                current = (current - 1 + urls.length) % urls.length;
+                showImage(current);
+            }
+            container.appendChild(leftBtn);
+
+            // 오른쪽 화살표
+            const rightBtn = document.createElement('button');
+            rightBtn.textContent = '›';
+            rightBtn.className = 'carousel-arrow right';
+            rightBtn.type = 'button';
+            rightBtn.onclick = function() {
+                current = (current + 1) % urls.length;
+                showImage(current);
+            }
+            container.appendChild(rightBtn);
+        }
+    }
+
+    showImage(current);
+}
 </script>
 </section>
 </body>
