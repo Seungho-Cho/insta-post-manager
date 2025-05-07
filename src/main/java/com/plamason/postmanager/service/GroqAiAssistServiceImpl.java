@@ -81,7 +81,7 @@ public class GroqAiAssistServiceImpl implements AiAssistService {
         if (content == null) return List.of();
 
         // 정규표현식으로 #태그 추출
-        Pattern hashtagPattern = Pattern.compile("#([\\w\\-/]+)");
+        Pattern hashtagPattern = Pattern.compile("#([\\w\\-/가-힣]+)");
         Matcher matcher = hashtagPattern.matcher(content);
 
         List<String> tags = new ArrayList<>();

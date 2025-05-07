@@ -190,31 +190,42 @@
 
         <!-- 저자 -->
         <div>
-            <label for="author" class="block text-xs font-semibold text-neutral-500">작성자</label>
+            <label for="author" class="flex items-center gap-1">
+                <span class="block text-xs font-semibold text-neutral-500">작성자</span>
+                <span class="text-xs text-neutral-400">(선택)</span>
+            </label>
             <input type="text" id="author" name="author"
                    class="mt-1 block w-full rounded border border-neutral-200 px-3 py-2 focus:border-neutral-400 focus:ring-0 transition bg-white" />
         </div>
         <!-- 제목 -->
         <div>
-            <label for="title" class="block text-xs font-semibold text-neutral-500">제목</label>
+            <label for="title" class="flex items-center gap-1">
+                <span class="block text-xs font-semibold text-neutral-500">제목</span>
+                <span class="text-xs text-red-500">*</span>
+                <span class="text-xs text-neutral-400">(필수)</span>
+            </label>
             <input type="text" id="title" name="title"
                    class="mt-1 block w-full rounded border border-neutral-200 px-3 py-2 focus:border-neutral-400 focus:ring-0 transition bg-white"
                    required />
-        </div>
+</div>
+
         <!-- 내용 -->
         <div>
-            <label for="content" class="block text-xs font-semibold text-neutral-500">내용</label>
+            <label for="content" class="flex items-center gap-1">
+                <span class="block text-xs font-semibold text-neutral-500">내용</span>
+                <span class="text-xs text-neutral-400">(선택)</span>
+            </label>
             <textarea id="content" name="content" rows="6"
                       class="mt-1 block w-full rounded border border-neutral-200 px-3 py-2 focus:border-neutral-400 focus:ring-0 transition bg-white"
                       ></textarea>
-        </div>
+</div>
         <div class="flex items-center gap-2">
             <button type="button" id="btn-fetch-translate-content"
                     class="bg-blue-600 text-white px-4 py-1 mb-2 rounded hover:bg-blue-500 font-medium text-xs">
                 AI 번역 추가
             </button>
             <span class="text-xs text-neutral-400 mb-2">
-            AI 하루 이용량 제한이 있으므로, ai 기능을 과도하게 사용하지 말아주세요
+            하루 이용량 제한이 있으므로, ai 기능을 과도하게 사용하지 말아주세요
         </span>
         </div>
         <!-- 태그 (커스텀 입력 + 추천 태그) -->
@@ -277,6 +288,10 @@
   </div>
   <!-- 오른쪽: 삭제, 게시예약 버튼 -->
   <div class="flex gap-4">
+    <button type="button" id="btn-save"
+          class="bg-neutral-600 text-white px-6 py-2 rounded font-semibold hover:bg-neutral-500 transition">
+      임시 저장
+    </button>
     <button type="button" id="btn-delete"
         class="bg-red-600 text-white px-6 py-2 rounded font-semibold hover:bg-red-500 transition">
         삭제
@@ -304,13 +319,24 @@
             <div id="insta-preview-images" class="w-full bg-black flex justify-center items-center" style="aspect-ratio:1/1; max-height:350px; overflow:hidden"></div>
             <!-- 정보 영역 -->
             <div class="p-4">
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="block w-8 h-8 rounded-full bg-neutral-200"></span>
-                    <span id="insta-preview-author" class="font-semibold text-neutral-800 text-sm">team_plamason</span>
-                </div>
-                <div id="insta-preview-content" class="mb-2 text-base text-neutral-800 break-words"></div>
-                <div id="insta-preview-tags" class="text-blue-600 text-sm flex flex-wrap gap-1"></div>
-            </div>
+    <div class="flex items-center gap-2 mb-2">
+        <span class="block w-8 h-8 rounded-full bg-neutral-200"></span>
+        <span id="insta-preview-author" class="font-semibold text-neutral-800 text-sm">team_plamason</span>
+    </div>
+    <div class="overflow-y-auto max-h-60">
+        <!-- 축약된 컨텐츠 -->
+        <div id="insta-preview-content" class="mb-2 text-base text-neutral-800 break-words"></div>
+        <!-- 더보기 버튼 (오른쪽 정렬) -->
+        <div class="text-right">
+            <button id="insta-preview-more" class="text-blue-600 text-sm hidden hover:text-neutral-700">
+                더 보기...
+            </button>
+        </div>
+        <!-- 전체 컨텐츠 (처음에는 숨김) -->
+        <div id="insta-preview-full-content" class="mb-2 text-base text-neutral-800 break-words hidden"></div>
+    </div>
+    <div id="insta-preview-tags" class="text-blue-600 text-sm flex flex-wrap gap-1 mt-2"></div>
+</div>
         </div>
     </div>
 </div>
@@ -529,7 +555,7 @@ btnFetchSuggestTags.addEventListener('click', async function() {
         alert('태그 추천 요청 중 오류');
     }
     btnFetchSuggestTags.disabled = false;
-    btnFetchSuggestTags.textContent = '태그 받아오기'
+    btnFetchSuggestTags.textContent = 'AI 추천 받기'
 });
 });
 document.getElementById('btn-delete').addEventListener('click', function () {
@@ -548,7 +574,6 @@ document.getElementById('btn-delete').addEventListener('click', function () {
 });
 // 미리보기 버튼 관련
 document.getElementById('btn-preview').addEventListener('click', function() {
-    // 폼 입력값을 사용해서 미리보기 생성
     const images = (document.getElementById('imageUrls').value || '').split(',').map(v => v.trim()).filter(Boolean);
     const title = document.getElementById('title').value;
     const author = document.getElementById('author').value;
@@ -556,22 +581,44 @@ document.getElementById('btn-preview').addEventListener('click', function() {
 
     const htmlContent =
         title + '<br><br>' +
-        (author ? "작성자 : " + author + '<br><br>' : '') +
+        (author ? "Builder: " + author + '<br><br>' : '') +
         content.replace(/\n/g, '<br>') + '<br><br>';
-
 
     const tags = document.getElementById('tags').value.split(',').map(s => s.trim()).filter(Boolean);
 
-    // 인스타 이미지 프리뷰
-    const imageUrls = document.getElementById('imageUrls').value
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean)
-    renderImageCarousel(imageUrls);
+    // 이미지 캐러셀 렌더링
+    renderImageCarousel(images);
 
-    document.getElementById('insta-preview-content').innerHTML = htmlContent || "(내용 없음)";
+    // 컨텐츠 처리
+    const contentContainer = document.getElementById('insta-preview-content');
+    const fullContentContainer = document.getElementById('insta-preview-full-content');
+    const moreButton = document.getElementById('insta-preview-more');
 
-    // 태그
+    // 전체 내용 저장
+    fullContentContainer.innerHTML = htmlContent || "(내용 없음)";
+
+    // 축약 버전 (처음 3줄만 표시)
+    const lines = htmlContent.split('<br>').filter(line => line.trim());
+    const shortContent = lines.slice(0, 3).join('<br>');
+    
+    if (lines.length > 3) {
+        contentContainer.innerHTML = shortContent + '<br>';
+        moreButton.classList.remove('hidden');
+        fullContentContainer.classList.add('hidden');
+        
+        // 더보기 버튼 이벤트
+        moreButton.onclick = function() {
+            contentContainer.classList.add('hidden');
+            moreButton.classList.add('hidden');
+            fullContentContainer.classList.remove('hidden');
+        };
+    } else {
+        contentContainer.innerHTML = htmlContent;
+        moreButton.classList.add('hidden');
+        fullContentContainer.classList.add('hidden');
+    }
+
+    // 태그 렌더링
     const tagsDiv = document.getElementById('insta-preview-tags');
     tagsDiv.innerHTML = '';
     tags.forEach(tag => {
@@ -583,7 +630,7 @@ document.getElementById('btn-preview').addEventListener('click', function() {
         }
     });
 
-    // 모달 show
+    // 모달 표시
     document.getElementById('insta-preview-modal').classList.remove('hidden');
 });
 // 모달 닫기
@@ -593,10 +640,10 @@ document.getElementById('insta-preview-close').addEventListener('click', functio
 document.getElementById('insta-preview-modal').addEventListener('click', function(e){
     if(e.target === this) this.classList.add('hidden');
 });
-function renderImageCarousel(urls) {
+function renderImageCarousel(images) {
     const container = document.getElementById('insta-preview-images');
     container.innerHTML = '';
-    if (!urls || !urls.length) return;
+    if (!images || !images.length) return;
 
     let current = 0;
 
@@ -606,7 +653,7 @@ function renderImageCarousel(urls) {
 
         // 이미지
         const img = document.createElement('img');
-        img.src = urls[idx];
+        img.src = images[idx];
         img.alt = `미리보기 이미지 ${idx+1}`;
         img.className = 'object-contain max-h-full max-w-full mx-auto';
         img.style.display = 'block';
@@ -615,14 +662,14 @@ function renderImageCarousel(urls) {
         img.style.margin = '0 auto';
         container.appendChild(img);
 
-        if (urls.length > 1) {
+        if (images.length > 1) {
             // 왼쪽 화살표
             const leftBtn = document.createElement('button');
             leftBtn.textContent = '‹';
             leftBtn.className = 'carousel-arrow left';
             leftBtn.type = 'button';
             leftBtn.onclick = function() {
-                current = (current - 1 + urls.length) % urls.length;
+                current = (current - 1 + images.length) % images.length;
                 showImage(current);
             }
             container.appendChild(leftBtn);
@@ -633,7 +680,7 @@ function renderImageCarousel(urls) {
             rightBtn.className = 'carousel-arrow right';
             rightBtn.type = 'button';
             rightBtn.onclick = function() {
-                current = (current + 1) % urls.length;
+                current = (current + 1) % images.length;
                 showImage(current);
             }
             container.appendChild(rightBtn);
@@ -645,10 +692,10 @@ function renderImageCarousel(urls) {
 </script>
 
 <script>
-function renderImageCarousel(urls) {
+function renderImageCarousel(images) {
     const container = document.getElementById('insta-preview-images');
     container.innerHTML = '';
-    if (!urls || !urls.length) return;
+    if (!images || !images.length) return;
 
     let current = 0;
 
@@ -658,7 +705,7 @@ function renderImageCarousel(urls) {
 
         // 이미지
         const img = document.createElement('img');
-        img.src = urls[idx];
+        img.src = images[idx];
         img.alt = `미리보기 이미지 ${idx+1}`;
         img.className = 'object-contain max-h-full max-w-full mx-auto';
         img.style.display = 'block';
@@ -667,14 +714,14 @@ function renderImageCarousel(urls) {
         img.style.margin = '0 auto';
         container.appendChild(img);
 
-        if (urls.length > 1) {
+        if (images.length > 1) {
             // 왼쪽 화살표
             const leftBtn = document.createElement('button');
             leftBtn.textContent = '‹';
             leftBtn.className = 'carousel-arrow left';
             leftBtn.type = 'button';
             leftBtn.onclick = function() {
-                current = (current - 1 + urls.length) % urls.length;
+                current = (current - 1 + images.length) % images.length;
                 showImage(current);
             }
             container.appendChild(leftBtn);
@@ -685,7 +732,7 @@ function renderImageCarousel(urls) {
             rightBtn.className = 'carousel-arrow right';
             rightBtn.type = 'button';
             rightBtn.onclick = function() {
-                current = (current + 1) % urls.length;
+                current = (current + 1) % images.length;
                 showImage(current);
             }
             container.appendChild(rightBtn);
@@ -762,6 +809,40 @@ document.getElementById('btn-fetch-translate-content').addEventListener('click',
         button.textContent = 'AI 번역 추가';
     }
 });
+</script>
+<script>
+    // btn-save 버튼 이벤트 핸들러
+    document.getElementById('btn-save').addEventListener('click', function() {
+        document.getElementById('status').value = 'DRAFT'; // status를 DRAFT로 변경
+
+        const payload = {
+            title: document.getElementById('title').value,
+            content: document.getElementById('content').value,
+            author: document.getElementById('author').value,
+            tags: document.getElementById('tags').value
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean),
+            imageUrls: document.getElementById('imageUrls').value
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean),
+            status: 'DRAFT'
+        };
+
+        fetch(`/post/${postId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(res => {
+            if (res.ok) {
+                alert('임시저장이 완료되었습니다.');
+                window.location.href = '/ui/posts';
+            } else {
+                alert('저장 중 오류가 발생했습니다.');
+            }
+        });
+    });
 </script>
 </section>
 </body>
