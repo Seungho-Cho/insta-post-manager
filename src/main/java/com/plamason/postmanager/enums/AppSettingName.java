@@ -9,6 +9,7 @@ public enum AppSettingName {
     GROQ_API_KEY("groq.api.key"),
     GROQ_LLM_MODEL("groq.llm.model"),
     GROQ_BASE_PROMPT("groq.base.prompt"),
+    GROQ_TRANSLATE_PROMPT("groq.translate.prompt"),
     APP_BASE_TAG("app.base.tag");
 
     private final String key;

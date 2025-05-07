@@ -180,6 +180,8 @@
 </head>
 <body>
 <section layout:fragment="content">
+    <!-- 페이지 상단에 토스트 컨테이너 추가 -->
+<div id="toast-container" class="fixed top-4 right-4 z-50"></div>
     <div class="mb-8 pb-4 border-b border-neutral-200">
         <h2 class="text-xl font-bold text-neutral-800">인스타 게시 예약</h2>
     </div>
@@ -205,6 +207,15 @@
             <textarea id="content" name="content" rows="6"
                       class="mt-1 block w-full rounded border border-neutral-200 px-3 py-2 focus:border-neutral-400 focus:ring-0 transition bg-white"
                       ></textarea>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="button" id="btn-fetch-translate-content"
+                    class="bg-blue-600 text-white px-4 py-1 mb-2 rounded hover:bg-blue-500 font-medium text-xs">
+                AI 번역 추가
+            </button>
+            <span class="text-xs text-neutral-400 mb-2">
+            AI 하루 이용량 제한이 있으므로, ai 기능을 과도하게 사용하지 말아주세요
+        </span>
         </div>
         <!-- 태그 (커스텀 입력 + 추천 태그) -->
         <div>
@@ -435,7 +446,7 @@ tagInput.addEventListener('keydown', function(e) {
 // 서버에서 post 정보 및 추천 태그(baseTag) 모두 받아오기
 document.addEventListener("DOMContentLoaded", function () {
     // 1. 추천 태그 목록 받아오기
-    fetch('/tag/baseTag')
+    fetch('/ai/baseTag')
         .then(res => res.json())
         .then(tags => {
             DEFAULT_SUGGESTED = Array.isArray(tags) ? tags : [];
@@ -501,7 +512,7 @@ btnFetchSuggestTags.addEventListener('click', async function() {
     suggestedTagsFromAIDiv.innerHTML = '';
 
     try {
-        const resp = await fetch('/tag/suggest', {
+        const resp = await fetch('/ai/tagSuggest', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -683,6 +694,74 @@ function renderImageCarousel(urls) {
 
     showImage(current);
 }
+</script><script>
+// 토스트 메시지 표시 함수
+function showToast(message, type = 'warning') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    
+    // Tailwind 클래스로 스타일링
+    toast.className = `mb-3 p-4 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out 
+        ${type === 'warning' ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' : 
+        type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 
+        'bg-blue-50 text-blue-700 border border-blue-200'}`;
+    
+    toast.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                ${type === 'warning' ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>' : ''}
+            </div>
+            <div class="ml-3">${message}</div>
+        </div>`;
+    
+    container.appendChild(toast);
+    
+    // 3초 후 제거
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-x-full');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// 번역 버튼 이벤트 리스너 수정
+document.getElementById('btn-fetch-translate-content').addEventListener('click', async function() {
+    const contentTextarea = document.getElementById('content');
+    const currentContent = contentTextarea.value;
+
+    if (!currentContent.trim()) {
+        showToast('번역할 내용을 입력해주세요.', 'warning');
+        return;
+    }
+
+    const button = this;
+    button.disabled = true;
+    button.textContent = '번역중...';
+
+    try {
+        const response = await fetch('/ai/translate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                content: currentContent
+            })
+        });
+
+        if (response.ok) {
+            const translatedText = await response.text();
+            contentTextarea.value = currentContent + '\n\n' + translatedText;
+        } else {
+            showToast('번역 중 오류가 발생했습니다.', 'error');
+        }
+    } catch (error) {
+        showToast('번역 요청 중 오류가 발생했습니다.', 'error');
+        console.error('Translation error:', error);
+    } finally {
+        button.disabled = false;
+        button.textContent = 'AI 번역 추가';
+    }
+});
 </script>
 </section>
 </body>

@@ -15,6 +15,6 @@ public class AppSetting {
     @Column(unique=true, nullable=false)
     private String settingKey;
 
-    @Column
+    @Column(length = 1000)
     private String settingValue;
 }
