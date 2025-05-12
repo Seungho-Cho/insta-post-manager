@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -87,6 +88,7 @@ public class PostManageService {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
         post.setStatus(status);
+        if(status == PostStatus.PUBLISHED) post.setPostedAt(LocalDateTime.now());
         return convertToResponse(postRepository.save(post));
     }
 

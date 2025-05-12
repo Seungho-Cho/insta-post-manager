@@ -7,7 +7,7 @@ import java.util.List;
 @Service
 public interface InstagramApiService {
     String test();
-    Object validateToken(String token);
-    Object createPost(String userId, String accessToken, String imageUrl, String content);
-    Object createCarouselPost(String userId, String accessToken, List<String> imageUrlList, String content);
+    String validateToken(String token);
+    String createPost(String imageUrl, String content);
+    String createCarouselPost(List<String> imageUrlList, String content);
 }

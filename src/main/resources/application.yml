@@ -23,6 +23,11 @@ spring:
     init:
       mode: always
       encoding: UTF-8
+  devtools:
+    livereload:
+      enabled: true
+  thymeleaf:
+    cache: false
 
 logging:
   level:

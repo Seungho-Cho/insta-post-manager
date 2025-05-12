@@ -33,6 +33,8 @@ public class GroqAiAssistServiceImpl implements AiAssistService {
     private String BASE_PROMPT;
     private String TRANSLATE_PROMPT;
 
+    // TODO : postconstruct 에서 설정값들 초기화 하지말고, 매 호출마다 key값 설정해야 안전할듯, 설정값 캐싱도 되면 더 좋고
+
     @PostConstruct
     public void init() {
         Map<String, String> appSettings = appSettingService.getAllSettings();

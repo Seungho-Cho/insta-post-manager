@@ -1,6 +1,8 @@
 package com.plamason.postmanager.service;
 
+import com.plamason.postmanager.enums.AppSettingName;
 import com.plamason.postmanager.exception.InstaPostFailedException;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
@@ -16,7 +18,26 @@ import java.util.*;
 public class InstagramApiServiceImpl implements InstagramApiService {
 
     private final WebClient webClient;
+    private final AppSettingService appSettingService;
+
     private static final String BASE_URL = "https://graph.instagram.com/v22.0/";
+
+    private String ACCES_TOKEN;
+    private String USER_ID;
+
+    @PostConstruct
+    public void init() {
+        Map<String, String> appSettings = appSettingService.getAllSettings();
+        ACCES_TOKEN = appSettings.get(AppSettingName.INSTAGRAM_API_ACCESS_TOKEN.toString());
+        USER_ID = appSettings.get(AppSettingName.INSTAGRAM_API_USER_ID.toString());
+
+        if (ACCES_TOKEN == null || ACCES_TOKEN.isBlank()) {
+            throw new IllegalStateException("INSTAGRAM access token is not configured");
+        }
+        if (USER_ID == null || USER_ID.isBlank()) {
+            throw new IllegalStateException("INSTAGRAM user id is not configured");
+        }
+    }
 
     @Override
     public String test() {
@@ -24,24 +45,24 @@ public class InstagramApiServiceImpl implements InstagramApiService {
     }
 
     @Override
-    public Object validateToken(String token) {
+    public String validateToken(String token) {
         return null;
     }
 
     @Override
-    public String createPost(String userId, String accessToken, String imageUrl, String content) {
-        String containerId = createContainer(userId, accessToken, imageUrl, content, false);
-        return postContainer(userId, accessToken, containerId);
+    public String createPost(String imageUrl, String content) {
+        String containerId = createContainer(USER_ID, ACCES_TOKEN, imageUrl, content, false);
+        return postContainer(USER_ID, ACCES_TOKEN, containerId);
     }
 
     @Override
-    public String createCarouselPost(String userId, String accessToken, List<String> imageUrlList, String content) {
+    public String createCarouselPost(List<String> imageUrlList, String content) {
         List<String> containerIdList = new ArrayList<>();
         imageUrlList.forEach(imageUrl ->
-            containerIdList.add(createContainer(userId, accessToken, imageUrl, content, true))
+            containerIdList.add(createContainer(USER_ID, ACCES_TOKEN, imageUrl, content, true))
         );
-        String containerId = createCarouselContainer(userId, accessToken, containerIdList, content);
-        return postContainer(userId, accessToken, containerId);
+        String containerId = createCarouselContainer(USER_ID, ACCES_TOKEN, containerIdList, content);
+        return postContainer(USER_ID, ACCES_TOKEN, containerId);
     }
 
     private String createContainer(String userId, String accessToken, String imageUrl, String content, boolean isCarousel) {
