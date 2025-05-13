@@ -84,13 +84,7 @@ public class PostScheduler {
         try {
             log.info("포스트 게시 시작 - Post ID: {}, Title: {}", post.getId(), post.getTitle());
 
-            String postContent = String.format("%s\n\n%s\n\n%s",
-                "Builder: "+post.getAuthor(),
-                post.getContent(),
-                post.getTags().stream()
-                    .map(tag -> "#" + tag)
-                    .collect(Collectors.joining("\n"))
-            );
+            String postContent = generatePostContent(post);
             String instaPostId;
             if(post.getImageUrls().size() == 1) {
                 instaPostId = instagramApiService.createPost(post.getImageUrls().getFirst(), postContent);
@@ -109,5 +103,23 @@ public class PostScheduler {
             post.setErrorMessage(e.getMessage());
             postRepository.save(post);
         }
+    }
+
+    private String generatePostContent(Post post) {
+        return """
+            %s
+            
+            %s
+            
+            %s
+            """.formatted(
+                post.getTitle(),
+                post.getAuthor() == null || post.getAuthor().isBlank()
+                        ? ""
+                        : "Builder: " + post.getAuthor(),
+                post.getContent() + "\n" + post.getTags().stream()
+                        .map("#%s"::formatted)
+                        .collect(Collectors.joining("\n"))
+        ).strip(); // strip()를 이용해 불필요한 공백 제거
     }
 }

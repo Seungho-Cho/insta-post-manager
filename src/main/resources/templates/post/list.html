@@ -7,21 +7,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
     td.title-col {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    display: block;
+    max-width: 100%; 
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+td.title-col a {
+    display: inline-block;
+    max-width: 100%; 
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* 모바일 환경에서 제목의 레이아웃 */
+@media (max-width: 640px) {
+    table {
+        table-layout: auto; /* 테이블 레이아웃 해제 */
     }
 
+    td.title-col {
+        max-width: 100%; /* 제목 칼럼 최대 너비 설정 */
+        margin-right: 16px; /* 여백 조정 */
+    }
+
+    /* 제목 링크의 정렬 및 말줄임 */
+    td.title-col a {
+        display: inline-block; 
+        max-width: calc(100% - 16px); /* 너비 조절 */
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        vertical-align: top;
+    }
+}
     /* 제목 컬럼 호버 전체 표시 */
     td.title-col a {
-        display: inline-block;
-        vertical-align: middle;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        transition: background 0.2s;
-    }
+    display: inline-block;
+    vertical-align: middle;
+    max-width: 100%; /* 너비 제한 */
+    overflow: hidden;
+    text-overflow: ellipsis; /* 넘치면 말줄임 */
+    white-space: nowrap;
+    transition: background 0.2s;
+}
     td.title-col a:hover {
         white-space: normal;
         background: #f3f3f3;
@@ -44,6 +76,17 @@
             table-layout: fixed;
         }
     }
+
+/* 수정된 부분 */
+@media (max-width: 640px) { /* Tailwind 기준 sm 이하 (예: 640px) */
+    td.title-col {
+        max-width: calc(100% - 32px); /* 좌우 여백 처리 */
+    }
+
+    td.title-col a {
+        max-width: 100%; /* 부모 td안에서 말줄임 설정 */
+    }
+}
     @media (max-width: 640px) { /* Tailwind 기준 sm 이하 (예: 640px) */
         table thead {
             display: none;
@@ -78,6 +121,46 @@
             min-width: 64px;
         }
     }
+/* 모바일 환경에서 제목의 말줄임 제거 */
+@media (max-width: 640px) {
+    td.title-col a {
+        white-space: normal; /* 여러 줄 허용 */
+        overflow: visible; /* 넘치는 텍스트 표시 */
+        text-overflow: clip; /* 말줄임 제거 */
+    }
+}
+/* 모바일 환경에서 제목의 말줄임 완전 제거 */
+@media (max-width: 640px) {
+    td.title-col a {
+        white-space: normal !important; /* 여러 줄 허용 */
+        overflow: visible !important; /* 넘치는 텍스트 표시 */
+        text-overflow: clip !important; /* 말줄임 제거 */
+        display: block !important; /* 블록 요소로 완전 확장 */
+    }
+}
+    /* 제목과 "제목:"을 같은 줄에 놓이게 강제 설정 */
+@media (max-width: 640px) {
+    td.title-col {
+        display: flex; /* 한 줄에 배치 */
+        align-items: center; /* 가운데 정렬 */
+        gap: 4px; /* "제목:"과 제목 텍스트 간 간격 */
+    }
+
+    td.title-col a {
+        display: inline; /* a 링크를 인라인 요소로 취급 */
+        white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+        overflow: visible; /* 넘침 내용 표시 */
+        text-overflow: clip; /* 말줄임 제거 */
+    }
+
+    /* data-label: "제목:" 스타일 조정 */
+    td[data-label]:before {
+        content: attr(data-label); /* "제목: " 표시 */
+        white-space: nowrap; /* 항상 같은 줄에 유지 */
+        font-weight: bold; /* 강조 */
+        vertical-align: middle; /* 텍스트와 높이를 맞춤 */
+    }
+}
     </style>
 </head>
 <body>

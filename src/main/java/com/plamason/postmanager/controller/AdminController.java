@@ -1,11 +1,10 @@
 package com.plamason.postmanager.controller;
 
 import com.plamason.postmanager.scheduler.PostScheduler;
-import com.plamason.postmanager.service.AdminService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -15,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminController {
     private final PostScheduler postScheduler;
 
-    @PostMapping("/schedule/execute")
+    @GetMapping("/schedule/execute")
     public ResponseEntity<String> executePostingManually() {
         try {
             postScheduler.executePostingManually();
