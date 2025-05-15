@@ -11,7 +11,11 @@ public enum AppSettingName {
     GROQ_LLM_MODEL("groq.llm.model"),
     GROQ_BASE_PROMPT("groq.base.prompt"),
     GROQ_TRANSLATE_PROMPT("groq.translate.prompt"),
-    APP_BASE_TAG("app.base.tag");
+    APP_BASE_TAG("app.base.tag"),
+    R2_API_KEY("Cloudflare.R2.api.key"),
+    R2_ACCESS_TOKEN("Cloudflare.R2.access.token"),
+    R2_ENDPOINT_URL("Cloudflare.R2.endpoint.url"),
+    R2_BUCKET_NAME("Cloudflare.R2.bucket.name");
 
     private final String key;
 
