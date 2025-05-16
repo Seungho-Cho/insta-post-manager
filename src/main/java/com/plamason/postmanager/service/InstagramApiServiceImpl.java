@@ -50,22 +50,26 @@ public class InstagramApiServiceImpl implements InstagramApiService {
     }
 
     @Override
-    public String createPost(String imageUrl, String content) {
+    public String createPost(String imageUrl, String content) throws InstaPostFailedException {
         String containerId = createContainer(USER_ID, ACCES_TOKEN, imageUrl, content, false);
         return postContainer(USER_ID, ACCES_TOKEN, containerId);
     }
 
     @Override
-    public String createCarouselPost(List<String> imageUrlList, String content) {
+    public String createCarouselPost(List<String> imageUrlList, String content) throws InstaPostFailedException {
         List<String> containerIdList = new ArrayList<>();
-        imageUrlList.forEach(imageUrl ->
-            containerIdList.add(createContainer(USER_ID, ACCES_TOKEN, imageUrl, content, true))
-        );
+        imageUrlList.forEach(imageUrl -> {
+            try {
+                containerIdList.add(createContainer(USER_ID, ACCES_TOKEN, imageUrl, content, true));
+            } catch (InstaPostFailedException e) {
+                throw new RuntimeException("Failed to create container for image URL: " + imageUrl, e);
+            }
+        });
         String containerId = createCarouselContainer(USER_ID, ACCES_TOKEN, containerIdList, content);
         return postContainer(USER_ID, ACCES_TOKEN, containerId);
     }
 
-    private String createContainer(String userId, String accessToken, String imageUrl, String content, boolean isCarousel) {
+    private String createContainer(String userId, String accessToken, String imageUrl, String content, boolean isCarousel) throws InstaPostFailedException {
         validateNotNull(userId, "userId");
         validateNotNull(accessToken, "accessToken");
         validateNotNull(imageUrl, "imageUrl");
@@ -82,14 +86,10 @@ public class InstagramApiServiceImpl implements InstagramApiService {
             mediaBody.put("caption", content);
         }
 
-        try {
-            return getIdFromResponse(postWebClient(mediaUrl, mediaBody));
-        } catch (InstaPostFailedException e) {
-            return null;
-        }
+        return getIdFromResponse(postWebClient(mediaUrl, mediaBody));
     }
 
-    private String postContainer(String userId, String accessToken, String containerId) {
+    private String postContainer(String userId, String accessToken, String containerId) throws InstaPostFailedException {
         validateNotNull(userId, "userId");
         validateNotNull(accessToken, "accessToken");
         validateNotNull(containerId, "containerId");
@@ -99,14 +99,10 @@ public class InstagramApiServiceImpl implements InstagramApiService {
         publishBody.put("creation_id", containerId);
         publishBody.put("access_token", accessToken);
 
-        try {
-            return getIdFromResponse(postWebClient(publishUrl,publishBody));
-        } catch (InstaPostFailedException e) {
-            return null;
-        }
+        return getIdFromResponse(postWebClient(publishUrl,publishBody));
     }
 
-    private String createCarouselContainer(String userId, String accessToken, List<String> containerIdList, String content) {
+    private String createCarouselContainer(String userId, String accessToken, List<String> containerIdList, String content) throws InstaPostFailedException {
         validateNotNull(userId, "userId");
         validateNotNull(accessToken, "accessToken");
         validateNotNull(containerIdList, "containerId");
@@ -120,11 +116,7 @@ public class InstagramApiServiceImpl implements InstagramApiService {
         mediaBody.put("access_token", accessToken);
         mediaBody.put("caption", content);
 
-        try {
-            return getIdFromResponse(postWebClient(mediaUrl, mediaBody));
-        } catch (InstaPostFailedException e) {
-            return null;
-        }
+        return getIdFromResponse(postWebClient(mediaUrl, mediaBody));
     }
 
     private void validateNotNull(Object value, String name) {
