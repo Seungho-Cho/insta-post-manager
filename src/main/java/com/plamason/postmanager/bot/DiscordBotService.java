@@ -2,6 +2,7 @@ package com.plamason.postmanager.bot;
 
 import com.plamason.postmanager.enums.AppSettingName;
 import com.plamason.postmanager.service.AppSettingService;
+import com.plamason.postmanager.service.ImageHostingService;
 import com.plamason.postmanager.service.PostManageService;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.JDA;
@@ -17,6 +18,7 @@ public class DiscordBotService {
 
     private final PostManageService postManageService;
     private final AppSettingService appSettingService;
+    private final ImageHostingService imageHostingService;
 
     public JDA startBotAndListenChannel() throws IllegalStateException{
         Map<String, String> appSettings = appSettingService.getAllSettings();
@@ -34,7 +36,7 @@ public class DiscordBotService {
         }
 
         return JDABuilder.createDefault(token)
-                .addEventListeners(new DiscordBotMessageListener(channelId, postManagerUrl, postManageService))
+                .addEventListeners(new DiscordBotMessageListener(channelId, postManagerUrl, postManageService, imageHostingService))
                 .enableIntents(
                         GatewayIntent.GUILD_MESSAGES,
                         GatewayIntent.MESSAGE_CONTENT

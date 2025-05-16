@@ -1,6 +1,7 @@
 package com.plamason.postmanager.bot;
 
 import com.plamason.postmanager.dto.PostRequest;
+import com.plamason.postmanager.service.ImageHostingService;
 import com.plamason.postmanager.service.PostManageService;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.entities.Member;
@@ -9,8 +10,10 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @AllArgsConstructor
 public class DiscordBotMessageListener extends ListenerAdapter {
@@ -18,6 +21,7 @@ public class DiscordBotMessageListener extends ListenerAdapter {
     private final String channelId;
     private final String postManagerUrl;
     private final PostManageService postManageService;
+    private final ImageHostingService imageHostingService;
 
     private static final String UI_URL = "/ui/posts/";
 
@@ -39,8 +43,13 @@ public class DiscordBotMessageListener extends ListenerAdapter {
                 .map(Member::getNickname)
                 .orElse(event.getAuthor().getName());
 
+        List<String> uploadedUrls = new ArrayList<>();
+        imageUrls.forEach(imageUrl ->
+            uploadedUrls.add(imageHostingService.uploadImage(imageUrl, UUID.randomUUID().toString()))
+        );
+
         Long postId = postManageService.createPost(PostRequest.builder()
-                .imageUrls(imageUrls)
+                .imageUrls(uploadedUrls)
                 .author(author)
                 .build()
         ).getId();

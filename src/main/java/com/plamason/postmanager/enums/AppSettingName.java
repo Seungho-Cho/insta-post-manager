@@ -15,7 +15,8 @@ public enum AppSettingName {
     R2_API_KEY("Cloudflare.R2.api.key"),
     R2_ACCESS_TOKEN("Cloudflare.R2.access.token"),
     R2_ENDPOINT_URL("Cloudflare.R2.endpoint.url"),
-    R2_BUCKET_NAME("Cloudflare.R2.bucket.name");
+    R2_BUCKET_NAME("Cloudflare.R2.bucket.name"),
+    R2_OPEN_URL("Cloudflare.R2.open.url");
 
     private final String key;
 
