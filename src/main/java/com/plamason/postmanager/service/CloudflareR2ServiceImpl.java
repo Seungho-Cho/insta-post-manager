@@ -12,8 +12,14 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
+import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -90,21 +96,136 @@ public class CloudflareR2ServiceImpl implements ImageHostingService {
                 throw new IllegalArgumentException("지원하지 않는 이미지 포맷입니다: " + format);
             }
 
-            // 이미지 리사이즈 처리
-            BufferedImage resized = (original.getWidth() > MAX_WIDTH || original.getHeight() > MAX_HEIGHT)
-                    ? Thumbnails.of(original).size(MAX_WIDTH, MAX_HEIGHT).asBufferedImage()
-                    : original;
+            // 인스타그램 비율에 맞도록 레터박스 추가
+            BufferedImage adjustedImage = ensureInstagramRatio(original);
 
-            // 원본 이미지 업로드
-            result = uploadToR2(r2Client, bucket, BASE_DIR + saveName + "." + format, resized, format);
+            // 고화질 리사이즈 처리
+            BufferedImage resized = resizeImage(adjustedImage, MAX_WIDTH, MAX_HEIGHT);
 
-            // 썸네일 이미지 업로드
-            BufferedImage thumb = Thumbnails.of(resized).size(THUMB_WIDTH, THUMB_HEIGHT).asBufferedImage();
-            uploadToR2(r2Client, bucket, THUMB_DIR + saveName + "." + format, thumb, format);
+            // 원본 이미지 업로드 (JPEG 품질 90% 설정)
+            result = uploadToR2WithQuality(r2Client, bucket, BASE_DIR + saveName + "." + format, resized, format, 0.9f);
+
+            // 썸네일 이미지 업로드 (작은 크기 유지)
+            BufferedImage thumb = resizeImage(resized, THUMB_WIDTH, THUMB_HEIGHT);
+            uploadToR2WithQuality(r2Client, bucket, THUMB_DIR + saveName + "." + format, thumb, format, 0.9f);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
         return result;
+    }
+
+    /**
+     * 고화질 리사이즈 처리를 위한 메서드
+     */
+    private BufferedImage resizeImage(BufferedImage image, int maxWidth, int maxHeight) throws IOException {
+        if (image.getWidth() <= maxWidth && image.getHeight() <= maxHeight) {
+            // 리사이즈가 필요 없는 경우 원본 반환
+            return image;
+        }
+
+        return Thumbnails.of(image)
+                .size(maxWidth, maxHeight)
+                .outputQuality(1.0f) // 화질 유지 (최대 품질)
+                .asBufferedImage();
+    }
+
+    /**
+     * R2 업로드 시 이미지 품질을 설정하여 업로드
+     */
+    private String uploadToR2WithQuality(S3Client client, String bucket, String key, BufferedImage image,
+                                         String format, float quality) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        // JPEG 품질 설정
+        if ("jpg".equals(format) || "jpeg".equals(format)) {
+            ImageIO.write(getCompressedJPEGImage(image, quality), "jpg", baos);
+        } else {
+            // 기타 포맷(png, webp 등)은 기본 처리
+            ImageIO.write(image, format, baos);
+        }
+
+        byte[] bytes = baos.toByteArray();
+        PutObjectRequest req = PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .contentType(SUPPORTED_FORMATS.get(format))
+                .contentLength((long) bytes.length)
+                .build();
+
+        client.putObject(req, RequestBody.fromBytes(bytes));
+        return openUrl + "/" + key; // 공개 URL 반환
+    }
+
+    /**
+     * JPEG 형식의 이미지에 압축을 적용
+     */
+    private BufferedImage getCompressedJPEGImage(BufferedImage image, float quality) throws IOException {
+        // JPEG 압축 처리
+        ImageWriter writer = ImageIO.getImageWritersByFormatName("jpeg").next();
+        ImageWriteParam param = writer.getDefaultWriteParam();
+        param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+        param.setCompressionQuality(quality);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (ImageOutputStream ios = ImageIO.createImageOutputStream(baos)) {
+            writer.setOutput(ios);
+            writer.write(null, new IIOImage(image, null, null), param);
+        } finally {
+            writer.dispose(); // 리소스 해제
+        }
+
+        return ImageIO.read(new ByteArrayInputStream(baos.toByteArray()));
+    }
+
+    /**
+     * 인스타그램 지원 비율(4:5 ~ 1.91:1)에 맞춰 레터박스를 추가
+     */
+    private BufferedImage ensureInstagramRatio(BufferedImage original) {
+        final double MAX_RATIO = 1.91; // 최대 가로비 (1.91:1)
+        final double MIN_RATIO = 0.8;  // 최대 세로비 (4:5)
+
+        int originalWidth = original.getWidth();
+        int originalHeight = original.getHeight();
+        double currentRatio = (double) originalWidth / originalHeight;
+
+        // 비율이 이미 알맞다면 원본 반환
+        if (currentRatio <= MAX_RATIO && currentRatio >= MIN_RATIO) {
+            return original;
+        }
+
+        int targetWidth, targetHeight;
+        if (currentRatio > MAX_RATIO) {
+            // 가로가 지나치게 긴 경우
+            targetWidth = originalWidth;
+            targetHeight = (int) (originalWidth / MAX_RATIO);
+        } else {
+            // 세로가 지나치게 긴 경우
+            targetWidth = (int) (originalHeight * MIN_RATIO);
+            targetHeight = originalHeight;
+        }
+
+        BufferedImage canvas = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = canvas.createGraphics();
+
+        try {
+            g2d.setColor(Color.BLACK); // 레터박스 배경을 검정으로 설정
+            g2d.fillRect(0, 0, targetWidth, targetHeight);
+
+            // 고품질 렌더링 옵션
+            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            // 원본 이미지를 중앙에 배치
+            int x = (targetWidth - originalWidth) / 2;
+            int y = (targetHeight - originalHeight) / 2;
+            g2d.drawImage(original, x, y, null);
+        } finally {
+            g2d.dispose(); // 리소스 해제
+        }
+
+        return canvas;
     }
 
     private String uploadToR2(S3Client client, String bucket, String key, BufferedImage image, String format) throws IOException {
